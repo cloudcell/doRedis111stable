@@ -113,11 +113,17 @@ redisWorker <- function(queue,
 #   used as a seed in lieu of a better user-supplied pRNG. See workerInit.
   queueWorkers <- sprintf("%s:workers",queue)
   redisIncr(queueWorkers)
-  cat("Waiting for doRedis jobs.\n", file=log)
-  flush.console()
+
+  waitingStatusDisplayed <- FALSE
   k <- 0
   while(k < iter)
   {
+    if(waitingStatusDisplayed == FALSE)
+    {
+      cat("Waiting for doRedis jobs.\n", file=log)
+      flush.console()
+      waitingStatusDisplayed <- TRUE
+    }	      
     ID <- redisBLPop(queue,timeout=timeout)[[1]] # Retrieve a job ID
 # We terminate the worker loop after a timeout when all specified work
 # queues have been deleted.
@@ -192,6 +198,8 @@ redisWorker <- function(queue,
       tryCatch(redisDelete(fttag.start), error=invisible, warning=invisible)
       .delOK()
       tryCatch(redisDelete(fttag.alive), error=invisible, warning=invisible)
+# reset the variable to print the "waiting" status
+      waitingStatusDisplayed <- FALSE
     }
   }
 # Either the queue has been deleted, or we've exceeded the number of
